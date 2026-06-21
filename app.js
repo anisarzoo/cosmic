@@ -243,24 +243,7 @@ function createSpecialTexture(type) {
     return canvas.toDataURL('image/png');
 }
 
-function createBlackHoleTexture() {
-    const size = 120;
-    const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    const cx = size/2; const cy = size/2;
-    
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
-    grad.addColorStop(0, '#000000');
-    grad.addColorStop(0.2, '#000000');
-    grad.addColorStop(0.4, '#330066');
-    grad.addColorStop(0.8, '#aa00ff');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,size,size);
-    
-    return canvas.toDataURL('image/png');
-}
+
 
 // Pre-generate textures for performance
 const PLANET_LEVELS = [
@@ -337,9 +320,7 @@ let currentShakePoints = 0;
 const SHAKE_POINTS_NEEDED = 1000;
 
 // Hazards state
-let blackHole = null;
 let orbitingMoons = [];
-const blackHoleTexture = createBlackHoleTexture();
 
 // Visual effects state
 let canvasParticles = [];
@@ -576,34 +557,7 @@ function checkOverflow() {
     }
 }
 
-function spawnBlackHole() {
-    if (blackHole) return;
-    const x = GAME_WIDTH * 0.2 + Math.random() * (GAME_WIDTH * 0.6);
-    const y = GAME_HEIGHT * 0.3 + Math.random() * (GAME_HEIGHT * 0.4);
-    
-    blackHole = Bodies.circle(x, y, 60, {
-        isStatic: true,
-        isSensor: true,
-        render: {
-            sprite: { texture: blackHoleTexture }
-        }
-    });
-    Composite.add(engine.world, blackHole);
-    
-    setTimeout(() => {
-        if (blackHole) {
-            Composite.remove(engine.world, blackHole);
-            blackHole = null;
-        }
-    }, 6000);
-}
 
-setInterval(() => {
-    // 30% chance every 10s to spawn a black hole if score > 500
-    if (gameStarted && !blackHole && score > 500 && Math.random() < 0.3) {
-        spawnBlackHole();
-    }
-}, 10000);
 
 function updateScore(points) {
     score += points;
@@ -811,24 +765,6 @@ function initEngine() {
     
     Events.on(engine, 'beforeUpdate', function() {
         const allBodies = Composite.allBodies(engine.world);
-        
-        // Black Hole gravity
-        if (blackHole) {
-            Body.setAngle(blackHole, blackHole.angle + 0.05);
-            const planets = allBodies.filter(b => !b.isStatic && !b.isSensor);
-            planets.forEach(p => {
-                const dx = blackHole.position.x - p.position.x;
-                const dy = blackHole.position.y - p.position.y;
-                const distSq = dx*dx + dy*dy;
-                if (distSq < 60000) { // Range
-                    const forceMag = 0.000015 * p.mass;
-                    Body.applyForce(p, p.position, {
-                        x: (dx / Math.sqrt(distSq)) * forceMag,
-                        y: (dy / Math.sqrt(distSq)) * forceMag
-                    });
-                }
-            });
-        }
         
         // Orbiting Moons logic
         orbitingMoons = orbitingMoons.filter(moon => {

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cosmic Merge</title>
+    <meta name="description" content="A relaxing physics merge game where you never lose.">
+    <!-- Easy, fast emoji favicon to fix the 404 error -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪐</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Load Matter.js from CDN for lightweight physics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+    <div id="particle-container"></div>
+    
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <h1 class="game-title">COSMIC MERGE</h1>
+        <div class="high-score-container">
+            HIGH SCORE<br>
+            <span id="lobby-high-score">0</span>
+        </div>
+        <button class="play-btn" onclick="startGame()">▶ PLAY</button>
+    </div>
+
+    <!-- Game Screen (Hidden initially) -->
+    <div id="game-ui" class="hidden">
+        <div class="top-bar">
+            <div class="score-section">
+                <div class="score-label">SCORE</div>
+                <div id="score">0</div>
+                <div id="combo-display"></div>
+            </div>
+            
+            <div class="controls-section">
+                <div class="score-section" style="margin-right: 10px; align-items: flex-end;">
+                    <div class="score-label">BEST</div>
+                    <div id="in-game-high-score" style="font-size: 1.2rem; font-weight: 800; color: #b3b9c5;">0</div>
+                </div>
+                <div id="next-planet-container">
+                    <div class="next-label">NEXT</div>
+                    <div id="next-planet-preview"></div>
+                    <div id="drop-timer-bar-bg"><div id="drop-timer-bar"></div></div>
+                </div>
+                <button id="shake-btn" class="shake-btn" onclick="shakeBox()">
+                    <div class="shake-fill" id="shake-fill"></div>
+                    <span class="icon">🌀</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="high-score-banner" class="high-score-banner">🎉 NEW HIGH SCORE! 🎉</div>
+
+        <div id="game-container">
+            <div id="instruction-text" class="info-text">Drag & Drop to Merge!</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

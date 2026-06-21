@@ -11,6 +11,70 @@ const GAME_HEIGHT = window.innerHeight - 80;
 const DROP_LINE_Y = 40; 
 const WALL_THICKNESS = 60;
 
+// Audio System (Procedural Web Audio)
+let isMuted = false;
+window.toggleMute = function() {
+    isMuted = !isMuted;
+    document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
+}
+
+const SoundEffects = {
+    playTone: function(freq, type, duration, vol, pitchSlide = 0) {
+        if (isMuted) return;
+        if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
+        
+        const oscillator = window.audioCtx.createOscillator();
+        const gainNode = window.audioCtx.createGain();
+        
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, window.audioCtx.currentTime);
+        if (pitchSlide !== 0) {
+            oscillator.frequency.exponentialRampToValueAtTime(freq * pitchSlide, window.audioCtx.currentTime + duration);
+        }
+        
+        gainNode.gain.setValueAtTime(vol, window.audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, window.audioCtx.currentTime + duration);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(window.audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(window.audioCtx.currentTime + duration);
+    },
+    
+    playDrop: function() {
+        this.playTone(300, 'sine', 0.1, 0.1, 0.5); // Quick descending blip
+    },
+    
+    playMerge: function(level, combo) {
+        const baseFreq = 200 + (level * 60);
+        const comboFreq = baseFreq * (1 + (combo * 0.1));
+        this.playTone(comboFreq, 'sine', 0.15, 0.15, 1.5); // Ascending pop
+        setTimeout(() => {
+            this.playTone(comboFreq * 1.5, 'triangle', 0.1, 0.05, 1.2);
+        }, 30);
+    },
+    
+    playShake: function() {
+        this.playTone(80, 'square', 0.4, 0.15, 0.5); // Low descending rumble
+    },
+    
+    playHighScore: function() {
+        let t = 0;
+        [440, 554, 659, 880].forEach(freq => {
+            setTimeout(() => {
+                this.playTone(freq, 'sine', 0.3, 0.2, 1);
+            }, t);
+            t += 80;
+        });
+    },
+    
+    playOverflow: function() {
+        this.playTone(150, 'sawtooth', 0.5, 0.2, 0.2); // Dark descending boom
+    }
+}
+
 function createPlanetTexture(radius, baseColor, level) {
     const size = Math.ceil(radius * 2);
     const canvas = document.createElement('canvas');
@@ -245,6 +309,7 @@ function updateScore(points) {
             hasNotifiedHighScore = true;
             highScoreBanner.classList.add('show');
             scoreEl.classList.add('golden-score');
+            SoundEffects.playHighScore();
             if (window.navigator && window.navigator.vibrate) {
                 window.navigator.vibrate([100, 50, 100, 50, 200]);
             }
@@ -356,6 +421,7 @@ function handlePointerUp(e) {
 
 function performDrop() {
     isDropping = true;
+    SoundEffects.playDrop();
     
     Body.setStatic(currentDropper, false);
     currentDropper.isSensor = false;
@@ -417,6 +483,7 @@ function handleCollisions(event) {
                 
                 mergesToProcess.push({ x: newX, y: newY, level: newLevel });
                 
+                // Combo system
                 comboCount++;
                 if (comboCount > 1) {
                     comboDisplay.innerText = `COMBO x${comboCount}!`;
@@ -424,6 +491,8 @@ function handleCollisions(event) {
                     comboDisplay.style.transform = `scale(${1 + Math.min(comboCount * 0.1, 0.5)})`;
                     setTimeout(() => comboDisplay.style.transform = 'scale(1)', 100);
                 }
+                
+                SoundEffects.playMerge(newLevel, comboCount);
                 
                 clearTimeout(comboTimer);
                 comboTimer = setTimeout(() => {
@@ -469,6 +538,8 @@ window.shakeBox = function() {
     shakeFill.style.height = '0%';
     shakeBtn.classList.remove('ready');
     
+    SoundEffects.playShake();
+    
     const allBodies = Composite.allBodies(engine.world);
     const planets = allBodies.filter(b => !b.isStatic && !b.isSensor && b.level !== undefined);
     
@@ -509,6 +580,7 @@ function checkOverflow() {
         
         createPopEffect(smallest.position.x, smallest.position.y, '#000000', 15);
         Composite.remove(engine.world, smallest);
+        SoundEffects.playOverflow();
         
         if (window.navigator && window.navigator.vibrate) {
             window.navigator.vibrate([50, 50, 50]); 
